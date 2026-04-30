@@ -20,9 +20,9 @@ const PRESET_CARDS = [
     color: "#C9A84C",
     textColor: "#fff",
     accent: "#fff",
-    categories: { dining: 4, groceries: 4, flights: 3, hotels: 1, transit: 1, streaming: 1, gas: 1, other: 1 },
+    categories: { dining: 4, groceries: 4, flights: 3, hotels: 5, transit: 1, streaming: 1, gas: 1, other: 1 },
     annualFee: 325,
-    perks: ["$120 dining credit", "$120 Uber Cash", "4x at restaurants worldwide"],
+    perks: ["$120 dining credit (GrubHub, Cheesecake Factory, Five Guys, BWW, Wonder)", "$120 Uber Cash", "$100 Resy credit", "$84 Dunkin' credit", "Hertz Five Star status", "5x prepaid hotels via AmexTravel"],
     pointSystem: "Membership Rewards",
   },
   {
@@ -509,14 +509,25 @@ Analyze ALL cards and respond ONLY with a JSON object (no markdown, no backticks
           .bottom-nav { display: block; }
           .main-content { padding: 20px 16px 100px !important; }
           .header-pad { padding: 14px 16px !important; }
-          .stats-3col { grid-template-columns: 1fr 1fr !important; }
+          /* Keep 3 columns so stats don't orphan — just let them compress */
+          .stats-3col { grid-template-columns: repeat(3, 1fr) !important; }
           .stats-4col { grid-template-columns: 1fr 1fr !important; }
           .two-col { grid-template-columns: 1fr !important; }
           .filter-scroll { overflow-x: auto; flex-wrap: nowrap !important; padding-bottom: 4px; -webkit-overflow-scrolling: touch; }
           .filter-scroll::-webkit-scrollbar { display: none; }
           .section-title { font-size: 22px !important; }
-          .history-row { gap: 10px !important; }
-          .history-desc { max-width: 120px; }
+          .history-row { gap: 8px !important; }
+          /* Prevent iOS auto-zoom — inputs must be ≥16px */
+          input, select, textarea { font-size: 16px !important; }
+          /* Bottom nav tap targets */
+          .bottom-tab { min-height: 44px; }
+          /* Custom modal responsive */
+          .modal-inner { padding: 20px 20px 44px !important; }
+          .modal-2col { grid-template-columns: 1fr !important; }
+          /* Stats padding tighter on small screens */
+          .stats-3col > div { padding: 14px 8px !important; }
+          .stats-3col .stat-value { font-size: 20px !important; }
+          .stats-3col .stat-label { font-size: 9px !important; }
         }
       `}</style>
 
@@ -594,18 +605,18 @@ Analyze ALL cards and respond ONLY with a JSON object (no markdown, no backticks
               <div className="filter-scroll" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 {["All", "No Annual Fee", "Has Annual Fee"].map(opt => (
                   <button key={opt} onClick={() => setFilterFee(opt)} style={{
-                    padding: "6px 14px", borderRadius: 20, fontSize: 12, cursor: "pointer",
-                    border: "1px solid", fontWeight: 500,
+                    padding: "10px 14px", borderRadius: 20, fontSize: 12, cursor: "pointer",
+                    border: "1px solid", fontWeight: 500, minHeight: 40, whiteSpace: "nowrap",
                     borderColor: filterFee === opt ? "#C9A84C" : "#2A2A2A",
                     background: filterFee === opt ? "rgba(201,168,76,0.1)" : "#111",
                     color: filterFee === opt ? "#C9A84C" : "#666",
                   }}>{opt}</button>
                 ))}
-                <div style={{ width: "1px", background: "#2A2A2A", margin: "0 4px" }} />
+                <div style={{ width: "1px", background: "#2A2A2A", margin: "0 4px", flexShrink: 0 }} />
                 {ISSUERS.map(issuer => (
                   <button key={issuer} onClick={() => setFilterIssuer(issuer)} style={{
-                    padding: "6px 14px", borderRadius: 20, fontSize: 12, cursor: "pointer",
-                    border: "1px solid", fontWeight: 500,
+                    padding: "10px 14px", borderRadius: 20, fontSize: 12, cursor: "pointer",
+                    border: "1px solid", fontWeight: 500, minHeight: 40, whiteSpace: "nowrap",
                     borderColor: filterIssuer === issuer ? "#C9A84C" : "#2A2A2A",
                     background: filterIssuer === issuer ? "rgba(201,168,76,0.1)" : "#111",
                     color: filterIssuer === issuer ? "#C9A84C" : "#666",
@@ -616,7 +627,7 @@ Analyze ALL cards and respond ONLY with a JSON object (no markdown, no backticks
                 <div style={{ fontSize: 12, color: "#555" }}>
                   {filteredCards.length} of {PRESET_CARDS.length} cards shown
                   <span onClick={() => { setSearch(""); setFilterFee("All"); setFilterIssuer("All"); }}
-                    style={{ color: "#C9A84C", cursor: "pointer", marginLeft: 10 }}>Clear filters</span>
+                    style={{ color: "#C9A84C", cursor: "pointer", marginLeft: 10, padding: "4px 0", display: "inline-block" }}>Clear filters</span>
                 </div>
               )}
             </div>
@@ -756,8 +767,8 @@ Analyze ALL cards and respond ONLY with a JSON object (no markdown, no backticks
                     { label: "Reward Systems", value: new Set(cards.map(c => c.pointSystem)).size },
                   ].map(stat => (
                     <div key={stat.label} style={{ background: "#111", border: "1px solid #1E1E1E", borderRadius: 14, padding: "18px 16px", textAlign: "center" }}>
-                      <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 26, fontWeight: 500, color: "#C9A84C" }}>{stat.value}</div>
-                      <div style={{ fontSize: 11, color: "#555", marginTop: 4, textTransform: "uppercase", letterSpacing: "0.5px" }}>{stat.label}</div>
+                      <div className="stat-value" style={{ fontFamily: "'Playfair Display', serif", fontSize: 26, fontWeight: 500, color: "#C9A84C" }}>{stat.value}</div>
+                      <div className="stat-label" style={{ fontSize: 11, color: "#555", marginTop: 4, textTransform: "uppercase", letterSpacing: "0.5px" }}>{stat.label}</div>
                     </div>
                   ))}
                 </div>
@@ -784,11 +795,11 @@ Analyze ALL cards and respond ONLY with a JSON object (no markdown, no backticks
                       if (!best) return null;
                       const rate = best.categories?.[cat.key] || best.categories?.other || 1;
                       return (
-                        <div key={cat.key} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid #1A1A1A" }}>
-                          <span style={{ fontSize: 13, color: "#AAA" }}>{cat.label}</span>
-                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                            <span style={{ fontSize: 13, fontWeight: 500, color: "#F0EDE8" }}>{best.name}</span>
-                            <span style={{ fontSize: 12, color: "#C9A84C", fontWeight: 600, background: "rgba(201,168,76,0.1)", padding: "2px 8px", borderRadius: 8 }}>{rate}x</span>
+                        <div key={cat.key} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid #1A1A1A", gap: 8 }}>
+                          <span style={{ fontSize: 13, color: "#AAA", flexShrink: 0 }}>{cat.label}</span>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                            <span style={{ fontSize: 13, fontWeight: 500, color: "#F0EDE8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{best.name}</span>
+                            <span style={{ fontSize: 12, color: "#C9A84C", fontWeight: 600, background: "rgba(201,168,76,0.1)", padding: "2px 8px", borderRadius: 8, flexShrink: 0 }}>{rate}x</span>
                           </div>
                         </div>
                       );
@@ -892,7 +903,7 @@ Analyze ALL cards and respond ONLY with a JSON object (no markdown, no backticks
                   {CATEGORIES.map((cat) => (
                     <button key={cat.key} onClick={() => setPurchaseInput((p) => ({ ...p, category: cat.key }))}
                       style={{
-                        padding: "8px 14px", borderRadius: 20,
+                        padding: "10px 14px", borderRadius: 20, minHeight: 44, whiteSpace: "nowrap",
                         border: "1px solid",
                         borderColor: purchaseInput.category === cat.key ? "#C9A84C" : "#2A2A2A",
                         background: purchaseInput.category === cat.key ? "rgba(201,168,76,0.1)" : "#111",
@@ -1086,8 +1097,8 @@ Analyze ALL cards and respond ONLY with a JSON object (no markdown, no backticks
                     })() },
                   ].map(stat => (
                     <div key={stat.label} style={{ background: "#111", border: "1px solid #1E1E1E", borderRadius: 14, padding: "18px 16px", textAlign: "center" }}>
-                      <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, fontWeight: 500, color: "#C9A84C" }}>{stat.value}</div>
-                      <div style={{ fontSize: 11, color: "#555", marginTop: 4, textTransform: "uppercase", letterSpacing: "0.5px" }}>{stat.label}</div>
+                      <div className="stat-value" style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, fontWeight: 500, color: "#C9A84C" }}>{stat.value}</div>
+                      <div className="stat-label" style={{ fontSize: 11, color: "#555", marginTop: 4, textTransform: "uppercase", letterSpacing: "0.5px" }}>{stat.label}</div>
                     </div>
                   ))}
                 </div>
@@ -1095,10 +1106,10 @@ Analyze ALL cards and respond ONLY with a JSON object (no markdown, no backticks
                 {/* Purchase list */}
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                   {history.map((entry, i) => (
-                    <div key={entry.id} className="result-card" style={{
+                    <div key={entry.id} className="result-card history-row" style={{
                       background: "#111", border: "1px solid #1E1E1E",
-                      borderRadius: 14, padding: "16px 20px",
-                      display: "flex", alignItems: "center", gap: 16,
+                      borderRadius: 14, padding: "14px 16px",
+                      display: "flex", alignItems: "center", gap: 12,
                       animationDelay: `${i * 0.04}s`,
                     }}>
                       {/* Category icon */}
@@ -1115,22 +1126,23 @@ Analyze ALL cards and respond ONLY with a JSON object (no markdown, no backticks
                         <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 2, textTransform: "capitalize", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                           {entry.description}
                         </div>
-                        <div style={{ fontSize: 12, color: "#555" }}>
+                        <div style={{ fontSize: 12, color: "#555", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                           {entry.card}
                           {entry.rewardType && <span style={{ marginLeft: 6, padding: "1px 7px", borderRadius: 8, background: "rgba(201,168,76,0.08)", color: "#8A7040", fontSize: 10, border: "1px solid rgba(201,168,76,0.12)" }}>{entry.rewardType}</span>}
                         </div>
                       </div>
 
                       {/* Right stats */}
-                      <div style={{ textAlign: "right", flexShrink: 0 }}>
+                      <div style={{ textAlign: "right", flexShrink: 0, minWidth: 0, maxWidth: 88 }}>
                         <div style={{ fontSize: 15, fontWeight: 600, color: "#F0EDE8" }}>${entry.amount.toLocaleString()}</div>
-                        <div style={{ fontSize: 12, color: "#C9A84C", marginTop: 2 }}>{entry.dollarValue} earned</div>
+                        <div style={{ fontSize: 11, color: "#C9A84C", marginTop: 2, whiteSpace: "nowrap" }}>{entry.dollarValue} earned</div>
                       </div>
 
                       {/* Delete */}
                       <button onClick={() => setHistory(prev => prev.filter(h => h.id !== entry.id))} style={{
-                        background: "none", border: "none", color: "#333", cursor: "pointer",
-                        fontSize: 16, padding: "4px", flexShrink: 0, lineHeight: 1,
+                        background: "none", border: "none", color: "#444", cursor: "pointer",
+                        fontSize: 18, padding: "10px 8px", flexShrink: 0, lineHeight: 1,
+                        minWidth: 36, minHeight: 36, display: "flex", alignItems: "center", justifyContent: "center",
                       }} title="Remove">×</button>
                     </div>
                   ))}
@@ -1353,7 +1365,7 @@ Analyze ALL cards and respond ONLY with a JSON object (no markdown, no backticks
             display: "flex", alignItems: "flex-end", justifyContent: "center",
           }}
         >
-          <div style={{
+          <div className="modal-inner" style={{
             background: "#111", border: "1px solid #2A2A2A",
             borderRadius: "20px 20px 0 0",
             width: "100%", maxWidth: 620,
@@ -1380,7 +1392,7 @@ Analyze ALL cards and respond ONLY with a JSON object (no markdown, no backticks
                   style={{ width: "100%", padding: "11px 14px", borderRadius: 10, background: "#1A1A1A", border: "1px solid #2A2A2A", color: "#F0EDE8", fontSize: 14, outline: "none", boxSizing: "border-box" }}
                 />
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div className="modal-2col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <div>
                   <label style={{ fontSize: 11, color: "#666", textTransform: "uppercase", letterSpacing: "0.5px", display: "block", marginBottom: 6 }}>Issuer</label>
                   <input
@@ -1408,8 +1420,8 @@ Analyze ALL cards and respond ONLY with a JSON object (no markdown, no backticks
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 10 }}>
                 {["Cashback", "Chase Ultimate Rewards", "Amex Membership Rewards", "Capital One Miles", "Citi ThankYou Points", "Bilt Points", "Delta SkyMiles", "Other Points"].map(ps => (
                   <button key={ps} onClick={() => setCustomCard(p => ({ ...p, pointSystem: ps }))} style={{
-                    padding: "7px 14px", borderRadius: 20, fontSize: 12, cursor: "pointer",
-                    border: "1px solid",
+                    padding: "10px 14px", borderRadius: 20, fontSize: 12, cursor: "pointer",
+                    border: "1px solid", minHeight: 40,
                     borderColor: customCard.pointSystem === ps ? "#C9A84C" : "#2A2A2A",
                     background: customCard.pointSystem === ps ? "rgba(201,168,76,0.1)" : "#1A1A1A",
                     color: customCard.pointSystem === ps ? "#C9A84C" : "#666",
@@ -1437,7 +1449,7 @@ Analyze ALL cards and respond ONLY with a JSON object (no markdown, no backticks
                 ].map(({ color, label }) => (
                   <div key={color} onClick={() => setCustomCard(p => ({ ...p, color }))} title={label}
                     style={{
-                      width: 36, height: 36, borderRadius: 8, background: color, cursor: "pointer",
+                      width: 44, height: 44, borderRadius: 10, background: color, cursor: "pointer",
                       border: customCard.color === color ? "2px solid #C9A84C" : "2px solid transparent",
                       boxShadow: customCard.color === color ? "0 0 0 2px rgba(201,168,76,0.4)" : "0 0 0 1px #2A2A2A",
                       transition: "box-shadow 0.15s",
@@ -1459,17 +1471,17 @@ Analyze ALL cards and respond ONLY with a JSON object (no markdown, no backticks
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <button
                           onClick={() => setCustomCard(p => ({ ...p, categories: { ...p.categories, [cat.key]: String(Math.max(1, val - 0.5)) } }))}
-                          style={{ width: 30, height: 30, borderRadius: 8, background: "#1A1A1A", border: "1px solid #2A2A2A", color: "#888", cursor: "pointer", fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1 }}>−</button>
+                          style={{ width: 40, height: 40, borderRadius: 10, background: "#1A1A1A", border: "1px solid #2A2A2A", color: "#888", cursor: "pointer", fontSize: 20, display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1, flexShrink: 0 }}>−</button>
                         <input
                           type="number" min="1" max="20" step="0.5"
                           value={customCard.categories[cat.key as keyof typeof customCard.categories]}
                           onChange={e => setCustomCard(p => ({ ...p, categories: { ...p.categories, [cat.key]: e.target.value } }))}
-                          style={{ width: 54, padding: "6px 8px", borderRadius: 8, background: "#1A1A1A", border: "1px solid #2A2A2A", color: "#F0EDE8", fontSize: 14, fontWeight: 500, outline: "none", textAlign: "center" }}
+                          style={{ width: 54, padding: "6px 8px", borderRadius: 8, background: "#1A1A1A", border: "1px solid #2A2A2A", color: "#F0EDE8", fontSize: 16, fontWeight: 500, outline: "none", textAlign: "center" }}
                         />
                         <span style={{ fontSize: 13, color: "#444", width: 14 }}>x</span>
                         <button
                           onClick={() => setCustomCard(p => ({ ...p, categories: { ...p.categories, [cat.key]: String(val + 0.5) } }))}
-                          style={{ width: 30, height: 30, borderRadius: 8, background: "#1A1A1A", border: "1px solid #2A2A2A", color: "#888", cursor: "pointer", fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1 }}>+</button>
+                          style={{ width: 40, height: 40, borderRadius: 10, background: "#1A1A1A", border: "1px solid #2A2A2A", color: "#888", cursor: "pointer", fontSize: 20, display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1, flexShrink: 0 }}>+</button>
                       </div>
                     </div>
                   );
